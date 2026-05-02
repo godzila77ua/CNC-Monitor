@@ -1,0 +1,96 @@
+{
+  "markers": {
+    "machining_start": "Initiate a machining task",
+    "simulation_start": "Initiate a simulation",
+    "stop": ["ОДјю", "ХэіЈНк±П"],
+    "manual_stop": ["ОДјю", "ЦР¶ПЦХЦ№"],
+    "ncstudio_start": "Nc Studio start",
+    "ncstudio_exit": "Nc Studio exits",
+    "cpu_freq": "CPU Freq",
+    "interrupt_loss": "INTERRUPTLOSS",
+    "internal_error": "ДЪІїґнОу",
+    "offset_change": "ёьёД№¤јюЧш±к"
+  },
+  "rules": {
+    "machining_start": {
+      "text": "Запуск обробки",
+      "telegram": true,
+      "console": true
+    },
+    "simulation_start": {
+      "text": "Запуск симуляції",
+      "telegram": true,
+      "console": true
+    },
+    "ncstudio_start": {
+      "text": "Запуск NC Studio",
+      "telegram": true,
+      "console": true
+    },
+    "ncstudio_exit": {
+      "text": "Вихід з NC Studio",
+      "telegram": true,
+      "console": true
+    },
+    "cpu_freq": {
+      "text": "Частота CPU",
+      "telegram": false,
+      "console": true
+    },
+    "interrupt_loss": {
+      "text": "Втрата переривань",
+      "telegram": false,
+      "console": true
+    },
+    "internal_error": {
+      "text": "Внутрішня помилка",
+      "telegram": true,
+      "console": true
+    },
+    "manual_stop": {
+      "text": "Зупинено вручну",
+      "telegram": true,
+      "console": true
+    },
+    "offset_change": {
+      "text": "Зміна координати заготовки",
+      "telegram": false,
+      "console": true
+    }
+  },
+  "messages": {
+    "START": {
+      "icon": "🟢",
+      "text": "Запуск обробки",
+      "include_file": true,
+      "include_duration": false
+    },
+    "STOP": {
+      "icon": "🔴",
+      "text": "Обробку завершено",
+      "include_file": true,
+      "include_duration": true
+    },
+    "STOP_MANUAL": {
+      "icon": "🟠",
+      "text": "Зупинено вручну",
+      "include_file": true,
+      "include_duration": true
+    },
+    "SIMULATION_START": {
+      "icon": "⚪",
+      "text": "Запуск симуляції",
+      "include_file": true,
+      "include_duration": false
+    },
+    "SIMULATION_STOP": {
+      "icon": "⚪",
+      "text": "Симуляцію завершено",
+      "include_file": true,
+      "include_duration": false
+    },
+    "INFO": {
+      "icon": "⚪"
+    }
+  }
+}
