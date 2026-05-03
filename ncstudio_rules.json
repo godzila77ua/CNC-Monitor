@@ -21,7 +21,7 @@
     },
 
     "START_ADVANCED": {
-      "icon": "🟡",
+      "icon": "🔵",
       "text": "Обробку продовжено",
       "include_file": true,
       "include_duration": false
@@ -36,14 +36,14 @@
 
     "STOP_MANUAL": {
       "icon": "🟠",
-      "text": "Зупинено вручну",
+      "text": "Обробку зупинено",
       "include_file": true,
       "include_duration": true
     },
 
     "SIMULATION_START": {
       "icon": "⚪",
-      "text": "Запуск симуляції",
+      "text": "Симуляцію розпочато",
       "include_file": true,
       "include_duration": false
     },
@@ -56,14 +56,14 @@
     },
 
     "NCSTUDIO_START": {
-      "icon": "⚪",
+      "icon": "🟣",
       "text": "Запуск NC Studio",
       "include_file": false,
       "include_duration": false
     },
 
     "NCSTUDIO_EXIT": {
-      "icon": "⚪",
+      "icon": "🟣",
       "text": "Вихід з NC Studio",
       "include_file": false,
       "include_duration": false

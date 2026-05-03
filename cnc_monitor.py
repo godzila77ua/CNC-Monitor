@@ -1,12 +1,8 @@
 ﻿import time
 import requests
 import importlib
-import config
 
-
-TOKEN = config.TOKEN
-CHAT_ID = config.CHAT_ID
-machines = config.MACHINES
+from config import MACHINES, TOKEN, CHAT_ID
 
 
 # ---------------- TELEGRAM ----------------
@@ -53,7 +49,7 @@ def create_adapter(m):
 # ---------------- INIT ----------------
 monitors = []
 
-for m in machines:
+for m in MACHINES:
     try:
         mon = create_adapter(m)
         monitors.append(mon)
@@ -75,11 +71,11 @@ while True:
             if not events:
                 continue
 
-            # нормалізація: завжди list
             if not isinstance(events, list):
                 events = [events]
 
             for event in events:
+
                 msg = mon.format_message(event)
 
                 if msg:

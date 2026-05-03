@@ -133,7 +133,7 @@ class NCStudioAdapter:
                     # CPU (console only)
                     if "CPU Freq" in line:
                         line = line.replace("CPU Freq =", "").strip()
-                        print(f"{self.name} ⚙ Частота процесора: {line}")
+                        print(f"{self.name} Частота процесора: {line}")
                         continue
 
                     # noise
@@ -158,7 +158,7 @@ class NCStudioAdapter:
                         self.simulation_running = True
                         self.simulation_file = self._extract_filename(line)
 
-                        print(f"{self.name} ⚪ SIMULATION START")
+                        print(f"{self.name} SIMULATION START")
 
                         events.append({
                             "type": "SIMULATION_START",
@@ -173,7 +173,7 @@ class NCStudioAdapter:
 
                         if self.simulation_running:
                             self.simulation_running = False
-                            print(f"{self.name} ⚪ SIMULATION STOP")
+                            print(f"{self.name} SIMULATION STOP")
 
                             events.append({
                                 "type": "SIMULATION_STOP",
@@ -184,7 +184,7 @@ class NCStudioAdapter:
                         duration = int(time.time() - self.start_time) if self.start_time else 0
                         self.state = "IDLE"
 
-                        print(f"{self.name} 🔴 STOP")
+                        print(f"{self.name} STOP")
 
                         events.append({
                             "type": "STOP",
@@ -201,7 +201,7 @@ class NCStudioAdapter:
 
                         self.state = "IDLE"
 
-                        print(f"{self.name} 🟠 STOP MANUAL")
+                        print(f"{self.name} STOP MANUAL")
 
                         events.append({
                             "type": "STOP_MANUAL",
@@ -223,7 +223,7 @@ class NCStudioAdapter:
                         l_range = self._parse_l_range(line)
 
                         if is_adv:
-                            print(f"{self.name} 🟡 START ADVANCED")
+                            print(f"{self.name} START ADVANCED")
 
                             # 🔥 ВАЖЛИВО: ТЕПЕР ТІЛЬКИ ОДИН ТЕКСТ
                             text = "Обробку продовжено"
@@ -237,7 +237,7 @@ class NCStudioAdapter:
                             })
 
                         else:
-                            print(f"{self.name} 🟢 START")
+                            print(f"{self.name} START")
 
                             events.append({
                                 "type": "START",

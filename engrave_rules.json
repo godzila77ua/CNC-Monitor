@@ -7,13 +7,13 @@
       "include_duration": false
     },
     "PAUSE": {
-      "icon": "🟧",
+      "icon": "🟨",
       "text": "Пауза обробки",
       "include_file": true,
       "include_duration": false
     },
     "RESUME": {
-      "icon": "🟩",
+      "icon": "🟦",
       "text": "Гравіювання продовжено",
       "include_file": true,
       "include_duration": false
