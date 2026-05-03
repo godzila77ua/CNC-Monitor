@@ -34,47 +34,52 @@ class NCStudioAdapter:
         except:
             self.last_pos = 0
 
-        self.SKIP_PATTERNS = [
-            "CPU ticks",
-            "INTERRUPTLOSS"
-        ]
-
     # ---------------- LOAD RULES ----------------
     def _load_rules(self):
         path = os.path.join(os.path.dirname(__file__), "ncstudio_rules.json")
         with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
 
-    # ---------------- CLEAN ----------------
+    # ---------------- CLEAN (ONLY FOR OUTPUT) ----------------
     def _remove_datetime(self, text):
-        return re.sub(
+
+        text = re.sub(
             r"^[A-Z]\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*",
             "",
             text
-        ).strip()
+        )
 
-    # ---------------- MARKER ----------------
-    def _has_marker(self, marker, line):
+        text = re.sub(
+            r"[^\x00-\x7F\u0400-\u04FF\s\[\]\:\-\.\>\=\/\\]+",
+            "",
+            text
+        )
 
-        line = re.sub(r"\s+", " ", line).strip().lower()
+        return text.strip()
+
+    # ---------------- MARKER (RAW ONLY) ----------------
+    def _has_marker(self, marker, raw_line):
+
+        line = re.sub(r"\s+", " ", raw_line).strip().lower()
 
         if isinstance(marker, list):
             return all(m.strip().lower() in line for m in marker)
 
         return marker.strip().lower() in line
 
-    # ---------------- FILE NAME ----------------
-    def _extract_filename(self, text):
+    # ---------------- OFFSET PARSER ----------------
+    def _parse_offset(self, raw):
 
-        matches = re.findall(r"[A-Z]:\\[^'\n\r]+?\.NC", text, re.IGNORECASE)
+        match = re.search(r"\[(.*?)\]:\s*(.+)", raw)
+        if not match:
+            return raw
 
-        if matches:
-            path = matches[-1]
-            return os.path.basename(path).rsplit(".", 1)[0].strip()
+        coord = match.group(1)
+        data = match.group(2).strip()
 
-        return self.current_file
+        return f"[{coord}]: {data}"
 
-    # ---------------- L RANGE ----------------
+    # ---------------- L RANGE PARSER ----------------
     def _parse_l_range(self, text):
 
         match = re.search(
@@ -93,6 +98,17 @@ class NCStudioAdapter:
             return f"з {start} до кінця програми"
 
         return f"з {start} до {end}"
+
+    # ---------------- FILE NAME ----------------
+    def _extract_filename(self, text):
+
+        matches = re.findall(r"[A-Z]:\\[^'\n\r]+?\.NC", text, re.IGNORECASE)
+
+        if matches:
+            path = matches[-1]
+            return os.path.basename(path).rsplit(".", 1)[0].strip()
+
+        return self.current_file
 
     # ---------------- TIME ----------------
     def _format_time(self, sec):
@@ -126,133 +142,130 @@ class NCStudioAdapter:
 
                 for raw in text.splitlines():
 
-                    line = self._remove_datetime(raw)
-                    if not line:
+                    if not raw:
                         continue
 
-                    # CPU (console only)
-                    if "CPU Freq" in line:
-                        line = line.replace("CPU Freq =", "").strip()
-                        print(f"{self.name} Частота процесора: {line}")
-                        continue
+                    clean = self._remove_datetime(raw)
+                    handled = False
 
-                    # noise
-                    if any(p in line for p in self.SKIP_PATTERNS):
-                        print(f"{self.name} {line}")
-                        continue
+                    # ---------------- CPU ----------------
+                    if self._has_marker(self.markers.get("cpu_freq"), raw):
 
-                    # NC START
-                    if self._has_marker(self.markers["ncstudio_start"], line):
-                        print(f"{self.name} NC STUDIO START")
+                        value = clean.replace("CPU Freq =", "").strip()
+
+                        match = re.search(r"(\d+)M,\s*(\d+)\s*CPU ticks per 5000us", value)
+                        if match:
+                            value = f"{match.group(1)}M, {match.group(2)} ticks/5ms"
+
+                        events.append({
+                            "type": "CPU_FREQ",
+                            "msg": value
+                        })
+                        handled = True
+
+                    # ---------------- OFFSET ----------------
+                    elif self._has_marker(self.markers.get("offset_change"), raw):
+
+                        events.append({
+                            "type": "OFFSET_CHANGE",
+                            "msg": self._parse_offset(clean)
+                        })
+                        handled = True
+
+                    # ---------------- NC START ----------------
+                    elif self._has_marker(self.markers["ncstudio_start"], raw):
+
                         events.append({"type": "NCSTUDIO_START"})
-                        continue
+                        handled = True
 
-                    # NC EXIT
-                    if self._has_marker(self.markers["ncstudio_exit"], line):
-                        print(f"{self.name} NC STUDIO EXIT")
+                    # ---------------- NC EXIT ----------------
+                    elif self._has_marker(self.markers["ncstudio_exit"], raw):
+
                         events.append({"type": "NCSTUDIO_EXIT"})
-                        continue
+                        handled = True
 
-                    # SIMULATION START
-                    if self._has_marker(self.markers["simulation_start"], line):
+                    # ---------------- SIMULATION START ----------------
+                    elif self._has_marker(self.markers["simulation_start"], raw):
+
                         self.simulation_running = True
-                        self.simulation_file = self._extract_filename(line)
-
-                        print(f"{self.name} SIMULATION START")
+                        self.simulation_file = self._extract_filename(raw)
 
                         events.append({
                             "type": "SIMULATION_START",
                             "file": self.simulation_file
                         })
-                        continue
+                        handled = True
 
-                    # STOP
-                    if self._has_marker(self.markers["stop"], line):
+                    # ---------------- STOP ----------------
+                    elif self._has_marker(self.markers["stop"], raw):
 
-                        file_name = self._extract_filename(line)
+                        file_name = self._extract_filename(raw)
 
                         if self.simulation_running:
                             self.simulation_running = False
-                            print(f"{self.name} SIMULATION STOP")
-
-                            events.append({
-                                "type": "SIMULATION_STOP",
-                                "file": file_name
-                            })
-                            continue
+                            event_type = "SIMULATION_STOP"
+                        else:
+                            event_type = "STOP"
 
                         duration = int(time.time() - self.start_time) if self.start_time else 0
                         self.state = "IDLE"
 
-                        print(f"{self.name} STOP")
-
                         events.append({
-                            "type": "STOP",
+                            "type": event_type,
                             "file": file_name,
                             "duration": duration
                         })
-                        continue
+                        handled = True
 
-                    # MANUAL STOP
-                    if self._has_marker(self.markers["manual_stop"], line):
+                    # ---------------- MANUAL STOP ----------------
+                    elif self._has_marker(self.markers["manual_stop"], raw):
 
-                        file_name = self._extract_filename(line)
+                        file_name = self._extract_filename(raw)
                         duration = int(time.time() - self.start_time) if self.start_time else 0
 
                         self.state = "IDLE"
-
-                        print(f"{self.name} STOP MANUAL")
 
                         events.append({
                             "type": "STOP_MANUAL",
                             "file": file_name,
                             "duration": duration
                         })
-                        continue
+                        handled = True
 
-                    # START / ADVANCED
-                    if self._has_marker(self.markers["machining_start"], line):
+                    # ---------------- START / ADVANCED ----------------
+                    elif self._has_marker(self.markers["machining_start"], raw):
 
-                        file_name = self._extract_filename(line)
+                        file_name = self._extract_filename(raw)
 
                         self.current_file = file_name
                         self.start_time = time.time()
                         self.state = "RUNNING"
 
-                        is_adv = "(advanced)" in line.lower()
-                        l_range = self._parse_l_range(line)
+                        is_adv = "(advanced)" in raw.lower()
+                        l_range = self._parse_l_range(raw)
 
+                        text = None
                         if is_adv:
-                            print(f"{self.name} START ADVANCED")
-
-                            # 🔥 ВАЖЛИВО: ТЕПЕР ТІЛЬКИ ОДИН ТЕКСТ
                             text = "Обробку продовжено"
                             if l_range:
                                 text = f"{text}\n{l_range}"
 
-                            events.append({
-                                "type": "START_ADVANCED",
-                                "file": file_name,
-                                "text": text
-                            })
+                        events.append({
+                            "type": "START_ADVANCED" if is_adv else "START",
+                            "file": file_name,
+                            "text": text
+                        })
+                        handled = True
 
-                        else:
-                            print(f"{self.name} START")
-
-                            events.append({
-                                "type": "START",
-                                "file": file_name
-                            })
-
-                        continue
-
-                    # INFO
-                    print(f"{self.name} {line}")
-                    events.append({"type": "INFO", "msg": line})
+                    # ---------------- RAW INFO ----------------
+                    if not handled:
+                        events.append({
+                            "type": "RAW_INFO",
+                            "msg": clean
+                        })
 
         except Exception as e:
-            print("NC adapter error:", e)
-            return None
+            return [{"type": "RAW_INFO", "msg": f"Adapter error: {e}"}]
 
         return events if events else None
 
@@ -260,23 +273,25 @@ class NCStudioAdapter:
     def format_message(self, event):
 
         t = event.get("type")
-        rule = self.message_rules.get(t)
-
-        if t == "INFO":
-            return f"{self.name}\n{event.get('msg')}"
-
-        if not rule:
-            return f"{self.name}\n{t}"
+        rule = self.message_rules.get(t, {})
 
         icon = rule.get("icon", "")
+
+        if t in ["RAW_INFO", "CPU_FREQ", "OFFSET_CHANGE"]:
+            text = rule.get("text", "")
+            msg = event.get("msg", "")
+
+            if text:
+                return f"{icon} {self.name}\n{text}: {msg}"
+
+            return f"{icon} {self.name}\n{msg}"
 
         lines = [
             f"{icon} {self.name}".strip(),
             rule.get("text", t)
         ]
 
-        # ✅ ТІЛЬКИ ОДИН БЛОК ТЕКСТУ (без дублювання)
-        if "text" in event:
+        if event.get("text"):
             lines = [
                 f"{icon} {self.name}".strip(),
                 event["text"]

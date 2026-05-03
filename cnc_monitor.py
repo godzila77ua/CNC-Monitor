@@ -5,7 +5,9 @@ import importlib
 from config import MACHINES, TOKEN, CHAT_ID
 
 
-# ---------------- TELEGRAM ----------------
+# =========================
+# TELEGRAM
+# =========================
 def send(msg):
     try:
         requests.post(
@@ -20,7 +22,9 @@ def send(msg):
         print("[TELEGRAM ERROR]", e)
 
 
-# ---------------- ADAPTER FACTORY ----------------
+# =========================
+# ADAPTER FACTORY
+# =========================
 def create_adapter(m):
 
     t = m["TYPE"]
@@ -46,7 +50,9 @@ def create_adapter(m):
     raise Exception("Unknown TYPE: " + str(t))
 
 
-# ---------------- INIT ----------------
+# =========================
+# INIT
+# =========================
 monitors = []
 
 for m in MACHINES:
@@ -60,7 +66,9 @@ for m in MACHINES:
 print("CNC MONITOR запущено...")
 
 
-# ---------------- MAIN LOOP ----------------
+# =========================
+# MAIN LOOP
+# =========================
 while True:
 
     for mon in monitors:
@@ -78,8 +86,21 @@ while True:
 
                 msg = mon.format_message(event)
 
-                if msg:
+                if not msg:
+                    continue
+
+                # =========================
+                # ROUTING (НОВА ЛОГІКА)
+                # =========================
+                rule = mon.message_rules.get(event.get("type"), {})
+
+                to_console = rule.get("console", True)
+                to_telegram = rule.get("telegram", True)
+
+                if to_console:
                     print(msg)
+
+                if to_telegram:
                     send(msg)
 
         except Exception as e:
