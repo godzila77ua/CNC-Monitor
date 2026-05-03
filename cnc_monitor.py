@@ -1,35 +1,30 @@
 ﻿import time
-import json
 import requests
 import importlib
-import sys
+import config
 
 
-try:
-    sys.stdout.reconfigure(encoding='utf-8')
-except:
-    pass
+TOKEN = config.TOKEN
+CHAT_ID = config.CHAT_ID
+machines = config.MACHINES
 
 
-with open("config.json", "r", encoding="utf-8-sig") as f:
-    cfg = json.load(f)
-
-TOKEN = cfg["TOKEN"]
-CHAT_ID = cfg["CHAT_ID"]
-machines = cfg["MACHINES"]
-
-
+# ---------------- TELEGRAM ----------------
 def send(msg):
     try:
         requests.post(
             f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-            data={"chat_id": CHAT_ID, "text": msg},
+            data={
+                "chat_id": CHAT_ID,
+                "text": msg
+            },
             timeout=5
         )
-    except:
-        pass
+    except Exception as e:
+        print("[TELEGRAM ERROR]", e)
 
 
+# ---------------- ADAPTER FACTORY ----------------
 def create_adapter(m):
 
     t = m["TYPE"]
@@ -52,9 +47,10 @@ def create_adapter(m):
             m["IDLE_TIMEOUT"]
         )
 
-    raise Exception("Unknown TYPE")
+    raise Exception("Unknown TYPE: " + str(t))
 
 
+# ---------------- INIT ----------------
 monitors = []
 
 for m in machines:
@@ -68,27 +64,24 @@ for m in machines:
 print("CNC MONITOR запущено...")
 
 
+# ---------------- MAIN LOOP ----------------
 while True:
 
     for mon in monitors:
 
         try:
-            e = mon.update()
+            events = mon.update()
 
-            if not e:
+            if not events:
                 continue
 
-            if isinstance(e, list):
+            # нормалізація: завжди list
+            if not isinstance(events, list):
+                events = [events]
 
-                for item in e:
-                    msg = mon.format_message(item)
-                    if msg:
-                        print(msg)
-                        send(msg)
+            for event in events:
+                msg = mon.format_message(event)
 
-            else:
-
-                msg = mon.format_message(e)
                 if msg:
                     print(msg)
                     send(msg)

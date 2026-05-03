@@ -15,10 +15,10 @@ class NCStudioAdapter:
 
         self.last_pos = 0
 
-        # стан
         self.state = "IDLE"
         self.current_file = "Невідомо"
         self.start_time = None
+
         self.simulation_running = False
         self.simulation_file = "Невідомо"
 
@@ -26,7 +26,6 @@ class NCStudioAdapter:
         self.markers = self.rules_config["markers"]
         self.message_rules = self.rules_config["messages"]
 
-        # старт з кінця логу
         try:
             if self.log_file and os.path.exists(self.log_file):
                 with open(self.log_file, "rb") as f:
@@ -35,88 +34,72 @@ class NCStudioAdapter:
         except:
             self.last_pos = 0
 
-        # ---------------- RULES ----------------
-        self.rules = []
-        for name, marker in self.markers.items():
-            if name in self.rules_config["rules"]:
-                self.rules.append({
-                    "marker": marker,
-                    "rule": self.rules_config["rules"][name]
-                })
+        self.SKIP_PATTERNS = [
+            "CPU ticks",
+            "INTERRUPTLOSS"
+        ]
 
     # ---------------- LOAD RULES ----------------
     def _load_rules(self):
-
         path = os.path.join(os.path.dirname(__file__), "ncstudio_rules.json")
         with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
 
-    # ---------------- FILE NAME ----------------
-    def _extract_filename(self, text):
-
-        matches = re.findall(
-            r"[A-Z]:\\[^'\n\r]+?\.NC",
-            text,
-            re.IGNORECASE
-        )
-
-        if matches:
-            path = matches[-1]
-            name = os.path.basename(path)
-            return name.rsplit(".", 1)[0].strip()
-
-        return self.current_file
-
-    # ---------------- CLEAN DATE ----------------
+    # ---------------- CLEAN ----------------
     def _remove_datetime(self, text):
-
         return re.sub(
-            r"^M\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*",
+            r"^[A-Z]\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*",
             "",
             text
         ).strip()
 
-    # ---------------- MARKER MATCH ----------------
+    # ---------------- MARKER ----------------
     def _has_marker(self, marker, line):
 
+        line = re.sub(r"\s+", " ", line).strip().lower()
+
         if isinstance(marker, list):
-            return all(part in line for part in marker)
+            return all(m.strip().lower() in line for m in marker)
 
-        return marker in line
+        return marker.strip().lower() in line
 
-    # ---------------- RULE ENGINE ----------------
-    def _apply_rule(self, line):
+    # ---------------- FILE NAME ----------------
+    def _extract_filename(self, text):
 
-        for item in self.rules:
-            key = item["marker"]
-            rule = item["rule"]
-            if self._has_marker(key, line):
-                replace_key = key[0] if isinstance(key, list) else key
-                return {
-                    "key": key,
-                    "text": line.replace(replace_key, rule["text"]),
-                    "telegram": rule["telegram"],
-                    "console": rule["console"]
-                }
+        matches = re.findall(r"[A-Z]:\\[^'\n\r]+?\.NC", text, re.IGNORECASE)
 
-        return {
-            "key": None,
-            "text": line,
-            "telegram": True,
-            "console": True
-        }
+        if matches:
+            path = matches[-1]
+            return os.path.basename(path).rsplit(".", 1)[0].strip()
+
+        return self.current_file
+
+    # ---------------- L RANGE ----------------
+    def _parse_l_range(self, text):
+
+        match = re.search(
+            r"from\s+(L\d+)\s+to\s+(L\d+|<last line>)",
+            text,
+            re.IGNORECASE
+        )
+
+        if not match:
+            return None
+
+        start = match.group(1)
+        end = match.group(2)
+
+        if "<last line>" in end:
+            return f"з {start} до кінця програми"
+
+        return f"з {start} до {end}"
 
     # ---------------- TIME ----------------
     def _format_time(self, sec):
-
         h = sec // 3600
         m = (sec % 3600) // 60
         s = sec % 60
-
-        if h == 0:
-            return f"{m} хв {s} сек"
-
-        return f"{h} год {m} хв {s} сек"
+        return f"{h} год {m} хв {s} сек" if h else f"{m} хв {s} сек"
 
     # ---------------- UPDATE ----------------
     def update(self):
@@ -141,18 +124,93 @@ class NCStudioAdapter:
                     except:
                         text = data.decode("utf-8", errors="ignore")
 
-                lines = text.splitlines()
-
-                for raw in lines:
+                for raw in text.splitlines():
 
                     line = self._remove_datetime(raw)
-
                     if not line:
                         continue
 
-                    rule = self._apply_rule(line)
+                    # CPU (console only)
+                    if "CPU Freq" in line:
+                        line = line.replace("CPU Freq =", "").strip()
+                        print(f"{self.name} ⚙ Частота процесора: {line}")
+                        continue
 
-                    # ---------------- START ----------------
+                    # noise
+                    if any(p in line for p in self.SKIP_PATTERNS):
+                        print(f"{self.name} {line}")
+                        continue
+
+                    # NC START
+                    if self._has_marker(self.markers["ncstudio_start"], line):
+                        print(f"{self.name} NC STUDIO START")
+                        events.append({"type": "NCSTUDIO_START"})
+                        continue
+
+                    # NC EXIT
+                    if self._has_marker(self.markers["ncstudio_exit"], line):
+                        print(f"{self.name} NC STUDIO EXIT")
+                        events.append({"type": "NCSTUDIO_EXIT"})
+                        continue
+
+                    # SIMULATION START
+                    if self._has_marker(self.markers["simulation_start"], line):
+                        self.simulation_running = True
+                        self.simulation_file = self._extract_filename(line)
+
+                        print(f"{self.name} ⚪ SIMULATION START")
+
+                        events.append({
+                            "type": "SIMULATION_START",
+                            "file": self.simulation_file
+                        })
+                        continue
+
+                    # STOP
+                    if self._has_marker(self.markers["stop"], line):
+
+                        file_name = self._extract_filename(line)
+
+                        if self.simulation_running:
+                            self.simulation_running = False
+                            print(f"{self.name} ⚪ SIMULATION STOP")
+
+                            events.append({
+                                "type": "SIMULATION_STOP",
+                                "file": file_name
+                            })
+                            continue
+
+                        duration = int(time.time() - self.start_time) if self.start_time else 0
+                        self.state = "IDLE"
+
+                        print(f"{self.name} 🔴 STOP")
+
+                        events.append({
+                            "type": "STOP",
+                            "file": file_name,
+                            "duration": duration
+                        })
+                        continue
+
+                    # MANUAL STOP
+                    if self._has_marker(self.markers["manual_stop"], line):
+
+                        file_name = self._extract_filename(line)
+                        duration = int(time.time() - self.start_time) if self.start_time else 0
+
+                        self.state = "IDLE"
+
+                        print(f"{self.name} 🟠 STOP MANUAL")
+
+                        events.append({
+                            "type": "STOP_MANUAL",
+                            "file": file_name,
+                            "duration": duration
+                        })
+                        continue
+
+                    # START / ADVANCED
                     if self._has_marker(self.markers["machining_start"], line):
 
                         file_name = self._extract_filename(line)
@@ -160,13 +218,27 @@ class NCStudioAdapter:
                         self.current_file = file_name
                         self.start_time = time.time()
                         self.state = "RUNNING"
-                        self.simulation_running = False
-                        self.simulation_file = "Невідомо"
 
-                        if rule["console"]:
-                            print(f"{self.name} START")
+                        is_adv = "(advanced)" in line.lower()
+                        l_range = self._parse_l_range(line)
 
-                        if rule["telegram"]:
+                        if is_adv:
+                            print(f"{self.name} 🟡 START ADVANCED")
+
+                            # 🔥 ВАЖЛИВО: ТЕПЕР ТІЛЬКИ ОДИН ТЕКСТ
+                            text = "Обробку продовжено"
+                            if l_range:
+                                text = f"{text}\n{l_range}"
+
+                            events.append({
+                                "type": "START_ADVANCED",
+                                "file": file_name,
+                                "text": text
+                            })
+
+                        else:
+                            print(f"{self.name} 🟢 START")
+
                             events.append({
                                 "type": "START",
                                 "file": file_name
@@ -174,95 +246,9 @@ class NCStudioAdapter:
 
                         continue
 
-                    # ---------------- SIMULATION START ----------------
-                    if self._has_marker(self.markers["simulation_start"], line):
-
-                        file_name = self._extract_filename(line)
-
-                        self.simulation_running = True
-                        self.simulation_file = file_name
-
-                        if rule["console"]:
-                            print(f"{self.name} SIMULATION START")
-
-                        if rule["telegram"]:
-                            events.append({
-                                "type": "SIMULATION_START",
-                                "file": file_name
-                            })
-
-                        continue
-
-                    # ---------------- STOP NORMAL ----------------
-                    if self._has_marker(self.markers["stop"], line):
-
-                        file_name = self._extract_filename(line)
-
-                        if self.simulation_running and self.state != "RUNNING":
-                            self.simulation_running = False
-                            self.simulation_file = file_name
-
-                            if rule["console"]:
-                                print(f"{self.name} SIMULATION STOP")
-
-                            events.append({
-                                "type": "SIMULATION_STOP",
-                                "file": self.simulation_file
-                            })
-
-                            continue
-
-                        self.current_file = file_name
-
-                        duration = 0
-                        if self.start_time:
-                            duration = int(time.time() - self.start_time)
-
-                        self.state = "IDLE"
-
-                        if rule["console"]:
-                            print(f"{self.name} STOP")
-
-                        events.append({
-                            "type": "STOP",
-                            "file": self.current_file,
-                            "duration": duration
-                        })
-
-                        continue
-
-                    # ---------------- STOP MANUAL ----------------
-                    if self._has_marker(self.markers["manual_stop"], line):
-
-                        file_name = self._extract_filename(line)
-                        self.current_file = file_name
-
-                        duration = 0
-                        if self.start_time:
-                            duration = int(time.time() - self.start_time)
-
-                        self.state = "IDLE"
-
-                        if rule["console"]:
-                            print(f"{self.name} STOP MANUAL")
-
-                        events.append({
-                            "type": "STOP_MANUAL",
-                            "file": self.current_file,
-                            "duration": duration
-                        })
-
-                        continue
-
-                    # ---------------- INFO ----------------
-                    if rule["console"]:
-                        print(f"{self.name} {rule['text']}")
-
-                    if rule["telegram"]:
-                        events.append({
-                            "type": "INFO",
-                            "msg": rule["text"]
-                        })
+                    # INFO
+                    print(f"{self.name} {line}")
+                    events.append({"type": "INFO", "msg": line})
 
         except Exception as e:
             print("NC adapter error:", e)
@@ -270,31 +256,36 @@ class NCStudioAdapter:
 
         return events if events else None
 
-    # ---------------- FORMAT ----------------
+    # ---------------- FORMAT MESSAGE ----------------
     def format_message(self, event):
 
         t = event.get("type")
         rule = self.message_rules.get(t)
 
-        if t == "INFO" and rule:
-            return (
-                f"{rule.get('icon', '⚪')} {self.name}\n"
-                f"{event.get('msg')}"
-            )
+        if t == "INFO":
+            return f"{self.name}\n{event.get('msg')}"
 
         if not rule:
-            return ""
+            return f"{self.name}\n{t}"
+
+        icon = rule.get("icon", "")
 
         lines = [
-            f"{rule.get('icon', '')} {self.name}".strip(),
-            rule.get("text", "")
+            f"{icon} {self.name}".strip(),
+            rule.get("text", t)
         ]
 
+        # ✅ ТІЛЬКИ ОДИН БЛОК ТЕКСТУ (без дублювання)
+        if "text" in event:
+            lines = [
+                f"{icon} {self.name}".strip(),
+                event["text"]
+            ]
+
         if rule.get("include_file"):
-            lines.append(f"Файл: {event['file']}")
+            lines.append(f"Файл: {event.get('file','Невідомо')}")
 
         if rule.get("include_duration"):
-            time_str = self._format_time(event.get("duration", 0))
-            lines.append(f"Час роботи: {time_str}")
+            lines.append(f"Час роботи: {self._format_time(event.get('duration',0))}")
 
         return "\n".join(lines)

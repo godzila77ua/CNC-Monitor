@@ -1,7 +1,6 @@
 import os
 import time
 import re
-import json
 
 
 class EngraveAdapter:
@@ -15,9 +14,6 @@ class EngraveAdapter:
         self.pause_timeout = timeout  # PAUSE timeout (немає змін)
 
         self.log_file = log_file  # не використовується
-
-        self.rules_config = self._load_rules()
-        self.message_rules = self.rules_config["messages"]
 
         # ---------------- STATE ----------------
         self.state = "IDLE"
@@ -33,12 +29,6 @@ class EngraveAdapter:
 
         self.current_file = "Невідомо"
 
-    # ---------------- LOAD RULES ----------------
-    def _load_rules(self):
-
-        path = os.path.join(os.path.dirname(__file__), "engrave_rules.json")
-        with open(path, "r", encoding="utf-8-sig") as f:
-            return json.load(f)
 
     # ---------------- FILE MOD ----------------
     def _get_mod(self):
@@ -46,6 +36,7 @@ class EngraveAdapter:
             return os.path.getmtime(self.file)
         except:
             return None
+
 
     # ---------------- FILE NAME ----------------
     def _get_filename(self):
@@ -72,6 +63,7 @@ class EngraveAdapter:
 
         return "Невідомо"
 
+
     # ---------------- TIME FORMAT ----------------
     def _format_time(self, sec):
 
@@ -83,6 +75,7 @@ class EngraveAdapter:
             return f"{m} хв {s} сек"
 
         return f"{h} год {m} хв {s} сек"
+
 
     # ---------------- UPDATE ----------------
     def update(self):
@@ -203,6 +196,7 @@ class EngraveAdapter:
 
         return event
 
+
     # ---------------- FORMAT MESSAGE ----------------
     def format_message(self, event):
 
@@ -210,21 +204,37 @@ class EngraveAdapter:
             return ""
 
         t = event["type"]
-        rule = self.message_rules.get(t)
 
-        if not rule:
-            return ""
+        if t == "START":
+            return (
+                f"🟩 {self.name}\n"
+                f"Запуск гравіювання\n"
+                f"Файл: {event['file']}"
+            )
 
-        lines = [
-            f"{rule.get('icon', '')} {self.name}".strip(),
-            rule.get("text", "")
-        ]
+        if t == "PAUSE":
+            return (
+                f"🟧 {self.name}\n"
+                f"Пауза обробки\n"
+                f"Файл: {event['file']}"
+            )
 
-        if rule.get("include_file"):
-            lines.append(f"Файл: {event['file']}")
+        if t == "RESUME":
+            return (
+                f"🟩 {self.name}\n"
+                f"Гравіювання продовжено\n"
+                f"Файл: {event['file']}"
+            )
 
-        if rule.get("include_duration"):
+        if t == "STOP":
+
             tstr = self._format_time(event.get("duration", 0))
-            lines.append(f"Час роботи: {tstr}")
 
-        return "\n".join(lines)
+            return (
+                f"🟥 {self.name}\n"
+                f"Гравіювання завершено\n"
+                f"Файл: {event['file']}\n"
+                f"Час роботи: {tstr}"
+            )
+
+        return ""
