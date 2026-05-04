@@ -1,0 +1,28 @@
+{
+  "messages": {
+    "START": {
+      "icon": "🟩",
+      "text": "Запуск гравіювання",
+      "include_file": true,
+      "include_duration": false
+    },
+    "PAUSE": {
+      "icon": "🟨",
+      "text": "Пауза обробки",
+      "include_file": true,
+      "include_duration": false
+    },
+    "RESUME": {
+      "icon": "🟦",
+      "text": "Гравіювання продовжено",
+      "include_file": true,
+      "include_duration": false
+    },
+    "STOP": {
+      "icon": "🟥",
+      "text": "Гравіювання завершено",
+      "include_file": true,
+      "include_duration": true
+    }
+  }
+}
