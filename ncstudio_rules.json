@@ -109,7 +109,7 @@
     },
 
     "RAW_INFO": {
-     "icon": "⚪",
+     "icon": "⚫",
      "text": "",
      "telegram": true,
      "console": true

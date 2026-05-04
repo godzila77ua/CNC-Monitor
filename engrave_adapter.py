@@ -1,6 +1,7 @@
 import os
 import time
 import re
+import json
 
 
 class EngraveAdapter:
@@ -10,10 +11,15 @@ class EngraveAdapter:
         self.name = name
         self.file = watch_file
 
-        self.timeout = timeout  # STOP timeout (зникнення файлу)
-        self.pause_timeout = timeout  # PAUSE timeout (немає змін)
+        self.timeout = timeout
+        self.pause_timeout = timeout
 
-        self.log_file = log_file  # не використовується
+        self.log_file = log_file
+
+        # ---------------- RULES ----------------
+        self.rules_config = self._load_rules()
+        self.message_rules = self.rules_config["messages"]
+        self.markers = self.rules_config["markers"]
 
         # ---------------- STATE ----------------
         self.state = "IDLE"
@@ -28,6 +34,13 @@ class EngraveAdapter:
         self.last_mod = self._get_mod()
 
         self.current_file = "Невідомо"
+
+
+    # ---------------- LOAD RULES ----------------
+    def _load_rules(self):
+        path = os.path.join(os.path.dirname(__file__), "engrave_rules.json")
+        with open(path, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
 
 
     # ---------------- FILE MOD ----------------
@@ -87,7 +100,7 @@ class EngraveAdapter:
         event = None
 
         # =========================
-        # 🔵 START
+        # 🟩 START
         # =========================
         file_appeared = exists and not self.last_exists
         file_changed = mod is not None and mod != self.last_mod
@@ -109,23 +122,20 @@ class EngraveAdapter:
             }
 
         # =========================
-        # 🟢 RUNNING (activity tracking)
+        # 🟩 RUNNING
         # =========================
         if exists:
 
-            # активність є → скидаємо missing
             self.missing_since = None
 
-            # зміни є → скидаємо pause timer
             if mod != self.last_mod:
                 self.pause_since = None
 
-            # немає змін → стартуємо pause timer
             elif self.state == "RUNNING" and self.pause_since is None:
                 self.pause_since = now
 
         # =========================
-        # 🟧 PAUSE
+        # 🟨 PAUSE
         # =========================
         if self.state == "RUNNING" and exists and self.pause_since is not None:
 
@@ -141,7 +151,7 @@ class EngraveAdapter:
                 }
 
         # =========================
-        # 🔁 RESUME (PAUSED → RUNNING)
+        # 🟦 RESUME
         # =========================
         if self.state == "PAUSED" and exists and mod != self.last_mod:
 
@@ -156,7 +166,7 @@ class EngraveAdapter:
             }
 
         # =========================
-        # 🔴 FILE MISSING
+        # 🟥 FILE MISSING
         # =========================
         if not exists and self.state in ["RUNNING", "PAUSED"]:
 
@@ -214,14 +224,14 @@ class EngraveAdapter:
 
         if t == "PAUSE":
             return (
-                f"🟧 {self.name}\n"
+                f"🟨 {self.name}\n"
                 f"Пауза обробки\n"
                 f"Файл: {event['file']}"
             )
 
         if t == "RESUME":
             return (
-                f"🟩 {self.name}\n"
+                f"🟦 {self.name}\n"
                 f"Гравіювання продовжено\n"
                 f"Файл: {event['file']}"
             )

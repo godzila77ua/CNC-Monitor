@@ -28,14 +28,21 @@ if not CHAT_ID:
 # =========================
 
 MACHINES = [
-    {
-        "NAME": "NC STUDIO",
-        "TYPE": "NCSTUDIO",
-        "WATCH_FILE": r"D:\TEMP D\!Portable\NcStudio 5.5.60 simulation\NCSTUDIO.DYN",
-        "LOG_FILE": r"D:\TEMP D\!Portable\NcStudio 5.5.60 simulation\NCSTUDIO.LOG",
-        "IDLE_TIMEOUT": 15
-    },
 
+    {
+       "NAME": "NC STUDIO",
+       "TYPE": "NCSTUDIO",
+       "WATCH_FILE": r"C:\Program Files\Ncstudio5.5.60\NCSTUDIO.DYN",
+       "LOG_FILE": r"C:\Program Files\Ncstudio5.5.60\NCSTUDIO.LOG",
+       "IDLE_TIMEOUT": 15
+    },
+    {
+      "NAME": "NC STUDIO Buka",
+      "TYPE": "NCSTUDIO",
+      "WATCH_FILE": r"C:\Program Files\ncbuka\Ncstudio Buka\NCSTUDIO.DYN",
+      "LOG_FILE": r"C:\Program Files\ncbuka\Ncstudio Buka\NCSTUDIO.LOG",
+      "IDLE_TIMEOUT": 15
+    },
     {
        "NAME": "ENGRAVE 80E",
        "TYPE": "ENGRAVE",
