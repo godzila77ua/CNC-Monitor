@@ -6,13 +6,13 @@ import json
 
 class EngraveAdapter:
 
-    def __init__(self, name, watch_file, log_file, timeout):
+    def __init__(self, name, watch_file, log_file, timeout, pause_timeout):
 
         self.name = name
         self.file = watch_file
 
         self.timeout = timeout
-        self.pause_timeout = timeout
+        self.pause_timeout = pause_timeout
 
         self.log_file = log_file
 
@@ -130,9 +130,9 @@ class EngraveAdapter:
 
             if mod != self.last_mod:
                 self.pause_since = None
-
-            elif self.state == "RUNNING" and self.pause_since is None:
-                self.pause_since = now
+            else:
+                if self.state == "RUNNING" and self.pause_since is None:
+                    self.pause_since = now
 
         # =========================
         # 🟨 PAUSE
@@ -142,6 +142,7 @@ class EngraveAdapter:
             if now - self.pause_since > self.pause_timeout:
 
                 self.state = "PAUSED"
+                self.pause_since = None
 
                 print(f"{self.name} PAUSE")
 
@@ -166,37 +167,37 @@ class EngraveAdapter:
             }
 
         # =========================
-        # 🟥 FILE MISSING
+        # 🟥 STOP (FIXED - NO SPAM)
         # =========================
-        if not exists and self.state in ["RUNNING", "PAUSED"]:
+        if not exists:
 
-            if self.missing_since is None:
-                self.missing_since = now
-
-        # =========================
-        # 🟥 STOP
-        # =========================
-        if self.missing_since is not None:
-
-            if now - self.missing_since > self.timeout:
-
-                self.state = "IDLE"
-
-                duration = 0
-                if self.start_time:
-                    duration = int(now - self.start_time)
-
-                print(f"{self.name} STOP")
-
-                event = {
-                    "type": "STOP",
-                    "file": self.current_file,
-                    "duration": duration
-                }
-
-                self.start_time = None
+            if self.state == "IDLE":
+                # 🔒 вже зупинено → нічого не робимо
                 self.missing_since = None
-                self.pause_since = None
+            else:
+
+                if self.missing_since is None:
+                    self.missing_since = now
+
+                if now - self.missing_since > self.timeout:
+
+                    self.state = "IDLE"
+
+                    duration = 0
+                    if self.start_time:
+                        duration = int(now - self.start_time)
+
+                    print(f"{self.name} STOP")
+
+                    event = {
+                        "type": "STOP",
+                        "file": self.current_file,
+                        "duration": duration
+                    }
+
+                    self.start_time = None
+                    self.missing_since = None
+                    self.pause_since = None
 
         # =========================
         # TRACK UPDATE

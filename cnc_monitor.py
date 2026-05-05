@@ -41,10 +41,11 @@ def create_adapter(m):
     if t == "ENGRAVE":
         mod = importlib.import_module("engrave_adapter")
         return mod.EngraveAdapter(
-            m["NAME"],
-            m["WATCH_FILE"],
-            m.get("LOG_FILE"),
-            m["IDLE_TIMEOUT"]
+           m["NAME"],
+           m["WATCH_FILE"],
+           m.get("LOG_FILE"),
+           m["IDLE_TIMEOUT"],
+           m.get("PAUSE_TIMEOUT", m["IDLE_TIMEOUT"])
         )
 
     raise Exception("Unknown TYPE: " + str(t))

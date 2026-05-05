@@ -46,12 +46,12 @@ def build_machine(prefix):
         return None
 
     if mtype == "ENGRAVE":
-        return {
-            "NAME": name,
-            "TYPE": mtype,
-            "WATCH_FILE": watch,
-            "IDLE_TIMEOUT": int(os.getenv(f"{prefix}_IDLE_TIMEOUT", 20)),
-            "PAUSE_TIMEOUT": int(os.getenv(f"{prefix}_PAUSE_TIMEOUT", 10))
+       return {
+           "NAME": name,
+           "TYPE": mtype,
+           "WATCH_FILE": watch,
+           "IDLE_TIMEOUT": int(os.getenv(f"{prefix}_IDLE_TIMEOUT", 10)),
+           "PAUSE_TIMEOUT": int(os.getenv(f"{prefix}_PAUSE_TIMEOUT", 5))
         }
 
     if mtype == "NCSTUDIO":
