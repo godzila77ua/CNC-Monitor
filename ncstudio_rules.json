@@ -60,10 +60,10 @@
     },
 
     "SIMULATION_STOP": {
-      "icon": "⚪",
+      "icon": "⚪⚪",
       "text": "Симуляцію завершено",
       "include_file": true,
-      "include_duration": false,
+      "include_duration": true,
       "telegram": true,
       "console": true
     },
@@ -78,7 +78,7 @@
     },
 
     "NCSTUDIO_EXIT": {
-      "icon": "🟣",
+      "icon": "🟣🟣",
       "text": "Вихід з NC Studio",
       "include_file": false,
       "include_duration": false,
@@ -87,21 +87,21 @@
     },
 
     "INFO": {
-      "icon": "⚪",
+      "icon": "🟤",
       "text": "",
       "telegram": true,
       "console": true
     },
 
     "CPU_FREQ": {
-     "icon": "⚪",
+     "icon": "🟤🟤🟤",
      "text": "Частота процесора",
      "telegram": true,
      "console": true
     },
 
     "OFFSET_CHANGE": {
-     "icon": "⚪",
+     "icon": "🟤🟤",
      "text": "Зміна нульової точки",
      "include_file": false,
      "telegram": true,
