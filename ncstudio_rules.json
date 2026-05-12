@@ -1,15 +1,15 @@
 {
-  "markers": {
+  "markers": {	
     "machining_start": "Initiate a machining task",
     "simulation_start": "Initiate a simulation",
-    "stop": ["ОДјю", "ХэіЈНк±П"],
-    "manual_stop": ["ОДјю", "ЦР¶ПЦХЦ№"],
+    "stop": ["正常完毕"],
+    "manual_stop": ["中断终止"],
     "ncstudio_start": "Nc Studio start",
     "ncstudio_exit": "Nc Studio exits",
     "cpu_freq": "CPU Freq",
     "interrupt_loss": "INTERRUPTLOSS",
-    "internal_error": "ДЪІїґнОу",
-    "offset_change": "ёьёД№¤јюЧш±к"
+    "internal_error": "内部错误：数据流解包错误",
+    "offset_change": "更改工件坐标"
   },
 
   "messages": {

@@ -50,7 +50,7 @@ class NCStudioAdapter:
         )
 
         text = re.sub(
-            r"[^\x00-\x7F\u0400-\u04FF\s\[\]\:\-\.\>\=\/\\]+",
+            r"[^\x00-\x7F\u0400-\u04FF\u4e00-\u9fff\s\[\]\:\-\.\>\=\/\\]+",
             "",
             text
         )
@@ -60,12 +60,12 @@ class NCStudioAdapter:
     # ---------------- MARKER (RAW ONLY) ----------------
     def _has_marker(self, marker, raw_line):
 
-        line = re.sub(r"\s+", " ", raw_line).strip().lower()
+        line = re.sub(r"\s+", " ", raw_line).strip()
 
         if isinstance(marker, list):
-            return all(m.strip().lower() in line for m in marker)
+            return any(m in line for m in marker)
 
-        return marker.strip().lower() in line
+        return marker in line
 
     # ---------------- OFFSET PARSER ----------------
     def _parse_offset(self, raw):
@@ -132,20 +132,39 @@ class NCStudioAdapter:
                 data = f.read()
                 self.last_pos = f.tell()
 
+                # =========================
+                # EVENT TEXT (GBK)
+                # =========================
                 try:
-                    text = data.decode("cp1251")
+                    event_text = data.decode("gbk")
                 except:
                     try:
-                        text = data.decode("gbk")
+                        event_text = data.decode("utf-8", errors="ignore")
                     except:
-                        text = data.decode("utf-8", errors="ignore")
+                        event_text = data.decode("cp1251", errors="ignore")
 
-                for raw in text.splitlines():
+                # =========================
+                # FILE TEXT (CP1251)
+                # =========================
+                try:
+                    file_text = data.decode("cp1251")
+                except:
+                    file_text = event_text
+
+                # =========================
+                # SPLIT LINES
+                # =========================
+                event_lines = event_text.splitlines()
+                file_lines = file_text.splitlines()
+
+                for raw, raw_file in zip(event_lines, file_lines):
 
                     if not raw:
                         continue
 
                     clean = self._remove_datetime(raw)
+                    clean_file = self._remove_datetime(raw_file)
+
                     handled = False
 
                     # ---------------- CPU ----------------
@@ -188,7 +207,7 @@ class NCStudioAdapter:
                     elif self._has_marker(self.markers["simulation_start"], raw):
 
                         self.simulation_running = True
-                        self.simulation_file = self._extract_filename(raw)
+                        self.simulation_file = self._extract_filename(clean_file)
 
                         events.append({
                             "type": "SIMULATION_START",
@@ -199,7 +218,7 @@ class NCStudioAdapter:
                     # ---------------- STOP ----------------
                     elif self._has_marker(self.markers["stop"], raw):
 
-                        file_name = self._extract_filename(raw)
+                        file_name = self._extract_filename(clean_file)
 
                         if self.simulation_running:
                             self.simulation_running = False
@@ -220,7 +239,7 @@ class NCStudioAdapter:
                     # ---------------- MANUAL STOP ----------------
                     elif self._has_marker(self.markers["manual_stop"], raw):
 
-                        file_name = self._extract_filename(raw)
+                        file_name = self._extract_filename(clean_file)
                         duration = int(time.time() - self.start_time) if self.start_time else 0
 
                         self.state = "IDLE"
@@ -235,7 +254,7 @@ class NCStudioAdapter:
                     # ---------------- START / ADVANCED ----------------
                     elif self._has_marker(self.markers["machining_start"], raw):
 
-                        file_name = self._extract_filename(raw)
+                        file_name = self._extract_filename(clean_file)
 
                         self.current_file = file_name
                         self.start_time = time.time()
