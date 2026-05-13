@@ -1,14 +1,19 @@
 {
-  "markers": {	
+  "markers": {
     "machining_start": "Initiate a machining task",
     "simulation_start": "Initiate a simulation",
+
     "stop": ["正常完毕"],
     "manual_stop": ["中断终止"],
+
     "ncstudio_start": "Nc Studio start",
     "ncstudio_exit": "Nc Studio exits",
+
     "cpu_freq": "CPU Freq",
     "interrupt_loss": "INTERRUPTLOSS",
-    "internal_error": "内部错误：数据流解包错误",
+
+    "internal_error": "内部错误",
+
     "offset_change": "更改工件坐标"
   },
 
@@ -94,26 +99,25 @@
     },
 
     "CPU_FREQ": {
-     "icon": "🟤🟤🟤",
-     "text": "Частота процесора",
-     "telegram": true,
-     "console": true
+      "icon": "🟤🟤🟤",
+      "text": "Частота процесора",
+      "telegram": true,
+      "console": true
     },
 
     "OFFSET_CHANGE": {
-     "icon": "🟤🟤",
-     "text": "Зміна нульової точки",
-     "include_file": false,
-     "telegram": true,
-     "console": true
+      "icon": "🟤🟤",
+      "text": "Зміна нульової точки",
+      "include_file": false,
+      "telegram": true,
+      "console": true
     },
 
     "RAW_INFO": {
-     "icon": "⚫",
-     "text": "",
-     "telegram": true,
-     "console": true
+      "icon": "⚫",
+      "text": "",
+      "telegram": true,
+      "console": true
     }
-
   }
 }

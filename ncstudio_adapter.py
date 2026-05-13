@@ -133,31 +133,30 @@ class NCStudioAdapter:
                 self.last_pos = f.tell()
 
                 # =========================
-                # EVENT TEXT (GBK)
+                # SPLIT RAW BYTES
                 # =========================
-                try:
-                    event_text = data.decode("gbk")
-                except:
+                raw_lines = data.splitlines()
+
+                for raw_bytes in raw_lines:
+
+                    # =========================
+                    # EVENT TEXT (GBK)
+                    # =========================
                     try:
-                        event_text = data.decode("utf-8", errors="ignore")
+                        raw = raw_bytes.decode("gbk")
                     except:
-                        event_text = data.decode("cp1251", errors="ignore")
+                        try:
+                            raw = raw_bytes.decode("utf-8", errors="ignore")
+                        except:
+                            raw = raw_bytes.decode("cp1251", errors="ignore")
 
-                # =========================
-                # FILE TEXT (CP1251)
-                # =========================
-                try:
-                    file_text = data.decode("cp1251")
-                except:
-                    file_text = event_text
-
-                # =========================
-                # SPLIT LINES
-                # =========================
-                event_lines = event_text.splitlines()
-                file_lines = file_text.splitlines()
-
-                for raw, raw_file in zip(event_lines, file_lines):
+                    # =========================
+                    # FILE TEXT (CP1251)
+                    # =========================
+                    try:
+                        raw_file = raw_bytes.decode("cp1251")
+                    except:
+                        raw_file = raw
 
                     if not raw:
                         continue
