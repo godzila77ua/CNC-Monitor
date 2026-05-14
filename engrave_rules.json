@@ -12,8 +12,7 @@
       "text": "Запуск гравіювання",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "PAUSE": {
@@ -21,8 +20,7 @@
       "text": "Пауза обробки",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "RESUME": {
@@ -30,8 +28,7 @@
       "text": "Гравіювання продовжено",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "STOP": {
@@ -39,8 +36,7 @@
       "text": "Гравіювання завершено",
       "include_file": true,
       "include_duration": true,
-      "telegram": true,
-      "console": true
+      "telegram": true
     }
   }
 }

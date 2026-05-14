@@ -90,9 +90,8 @@ if not MACHINES:
 # SYSTEM SETTINGS
 # =========================
 
-POLL_INTERVAL = float(os.getenv("CNC_POLL_INTERVAL", 0.5))
+POLL_INTERVAL = float(os.getenv("CNC_POLL_INTERVAL", 1))
 TELEGRAM_RETRY_DELAY = int(os.getenv("CNC_TELEGRAM_RETRY_DELAY", 2))
 TELEGRAM_MAX_RETRIES = int(os.getenv("CNC_TELEGRAM_MAX_RETRIES", 3))
 
 DEBUG_MODE = os.getenv("CNC_DEBUG_MODE", "true").lower() == "true"
-SHOW_RAW_LOGS = os.getenv("CNC_SHOW_RAW_LOGS", "false").lower() == "true"

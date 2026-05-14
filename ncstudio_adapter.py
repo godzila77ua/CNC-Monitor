@@ -34,11 +34,13 @@ class NCStudioAdapter:
         except:
             self.last_pos = 0
 
+
     # ---------------- LOAD RULES ----------------
     def _load_rules(self):
         path = os.path.join(os.path.dirname(__file__), "ncstudio_rules.json")
         with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
+
 
     # ---------------- CLEAN (ONLY FOR OUTPUT) ----------------
     def _remove_datetime(self, text):
@@ -57,6 +59,7 @@ class NCStudioAdapter:
 
         return text.strip()
 
+
     # ---------------- MARKER (RAW ONLY) ----------------
     def _has_marker(self, marker, raw_line):
 
@@ -66,6 +69,7 @@ class NCStudioAdapter:
             return any(m in line for m in marker)
 
         return marker in line
+
 
     # ---------------- OFFSET PARSER ----------------
     def _parse_offset(self, raw):
@@ -78,6 +82,7 @@ class NCStudioAdapter:
         data = match.group(2).strip()
 
         return f"[{coord}]: {data}"
+
 
     # ---------------- L RANGE PARSER ----------------
     def _parse_l_range(self, text):
@@ -99,6 +104,7 @@ class NCStudioAdapter:
 
         return f"з {start} до {end}"
 
+
     # ---------------- FILE NAME ----------------
     def _extract_filename(self, text):
 
@@ -110,12 +116,23 @@ class NCStudioAdapter:
 
         return self.current_file
 
+
     # ---------------- TIME ----------------
     def _format_time(self, sec):
         h = sec // 3600
         m = (sec % 3600) // 60
         s = sec % 60
         return f"{h} год {m} хв {s} сек" if h else f"{m} хв {s} сек"
+
+
+    # ---------------- EVENT WRAPPER ----------------
+    def _event(self, category, event_type, **data):
+        return {
+            "category": category,
+            "type": event_type,
+            **data
+        }
+
 
     # ---------------- UPDATE ----------------
     def update(self):
@@ -132,16 +149,10 @@ class NCStudioAdapter:
                 data = f.read()
                 self.last_pos = f.tell()
 
-                # =========================
-                # SPLIT RAW BYTES
-                # =========================
                 raw_lines = data.splitlines()
 
                 for raw_bytes in raw_lines:
 
-                    # =========================
-                    # EVENT TEXT (GBK)
-                    # =========================
                     try:
                         raw = raw_bytes.decode("gbk")
                     except:
@@ -150,9 +161,6 @@ class NCStudioAdapter:
                         except:
                             raw = raw_bytes.decode("cp1251", errors="ignore")
 
-                    # =========================
-                    # FILE TEXT (CP1251)
-                    # =========================
                     try:
                         raw_file = raw_bytes.decode("cp1251")
                     except:
@@ -175,32 +183,34 @@ class NCStudioAdapter:
                         if match:
                             value = f"{match.group(1)}M, {match.group(2)} ticks/5ms"
 
-                        events.append({
-                            "type": "CPU_FREQ",
-                            "msg": value
-                        })
+                        events.append(
+                            self._event("INFO", "CPU_FREQ", msg=value)
+                        )
                         handled = True
+
 
                     # ---------------- OFFSET ----------------
                     elif self._has_marker(self.markers.get("offset_change"), raw):
 
-                        events.append({
-                            "type": "OFFSET_CHANGE",
-                            "msg": self._parse_offset(clean)
-                        })
+                        events.append(
+                            self._event("INFO", "OFFSET_CHANGE", msg=self._parse_offset(clean))
+                        )
                         handled = True
+
 
                     # ---------------- NC START ----------------
                     elif self._has_marker(self.markers["ncstudio_start"], raw):
 
-                        events.append({"type": "NCSTUDIO_START"})
+                        events.append(self._event("STATE", "NCSTUDIO_START"))
                         handled = True
+
 
                     # ---------------- NC EXIT ----------------
                     elif self._has_marker(self.markers["ncstudio_exit"], raw):
 
-                        events.append({"type": "NCSTUDIO_EXIT"})
+                        events.append(self._event("STATE", "NCSTUDIO_EXIT"))
                         handled = True
+
 
                     # ---------------- SIMULATION START ----------------
                     elif self._has_marker(self.markers["simulation_start"], raw):
@@ -208,32 +218,39 @@ class NCStudioAdapter:
                         self.simulation_running = True
                         self.simulation_file = self._extract_filename(clean_file)
 
-                        events.append({
-                            "type": "SIMULATION_START",
-                            "file": self.simulation_file
-                        })
+                        events.append(
+                            self._event(
+                                "INFO",
+                                "SIMULATION_START",
+                                file=self.simulation_file
+                            )
+                        )
                         handled = True
+
 
                     # ---------------- STOP ----------------
                     elif self._has_marker(self.markers["stop"], raw):
 
                         file_name = self._extract_filename(clean_file)
 
+                        event_type = "SIMULATION_STOP" if self.simulation_running else "STOP"
+
                         if self.simulation_running:
                             self.simulation_running = False
-                            event_type = "SIMULATION_STOP"
-                        else:
-                            event_type = "STOP"
 
                         duration = int(time.time() - self.start_time) if self.start_time else 0
                         self.state = "IDLE"
 
-                        events.append({
-                            "type": event_type,
-                            "file": file_name,
-                            "duration": duration
-                        })
+                        events.append(
+                            self._event(
+                                "STATE" if event_type == "STOP" else "INFO",
+                                event_type,
+                                file=file_name,
+                                duration=duration
+                            )
+                        )
                         handled = True
+
 
                     # ---------------- MANUAL STOP ----------------
                     elif self._has_marker(self.markers["manual_stop"], raw):
@@ -243,12 +260,16 @@ class NCStudioAdapter:
 
                         self.state = "IDLE"
 
-                        events.append({
-                            "type": "STOP_MANUAL",
-                            "file": file_name,
-                            "duration": duration
-                        })
+                        events.append(
+                            self._event(
+                                "STATE",
+                                "STOP_MANUAL",
+                                file=file_name,
+                                duration=duration
+                            )
+                        )
                         handled = True
+
 
                     # ---------------- START / ADVANCED ----------------
                     elif self._has_marker(self.markers["machining_start"], raw):
@@ -268,24 +289,28 @@ class NCStudioAdapter:
                             if l_range:
                                 text = f"{text}\n{l_range}"
 
-                        events.append({
-                            "type": "START_ADVANCED" if is_adv else "START",
-                            "file": file_name,
-                            "text": text
-                        })
+                        events.append(
+                            self._event(
+                                "STATE",
+                                "START_ADVANCED" if is_adv else "START",
+                                file=file_name,
+                                text=text
+                            )
+                        )
                         handled = True
+
 
                     # ---------------- RAW INFO ----------------
                     if not handled:
-                        events.append({
-                            "type": "RAW_INFO",
-                            "msg": clean
-                        })
+                        events.append(
+                            self._event("RAW", "RAW_INFO", msg=clean)
+                        )
 
         except Exception as e:
-            return [{"type": "RAW_INFO", "msg": f"Adapter error: {e}"}]
+            return [self._event("RAW", "RAW_INFO", msg=f"Adapter error: {e}")]
 
         return events if events else None
+
 
     # ---------------- FORMAT MESSAGE ----------------
     def format_message(self, event):

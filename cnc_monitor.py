@@ -3,7 +3,7 @@ import requests
 import importlib
 import os
 
-from config import MACHINES, TOKEN, CHAT_ID
+from config import MACHINES, TOKEN, CHAT_ID, POLL_INTERVAL, DEBUG_MODE
 
 
 # =========================
@@ -18,7 +18,6 @@ def write_log(text):
 
     try:
 
-        # ---------------- ROTATE ----------------
         if os.path.exists(LOG_FILE):
 
             size = os.path.getsize(LOG_FILE)
@@ -34,7 +33,6 @@ def write_log(text):
 
                 os.rename(LOG_FILE, old_log)
 
-        # ---------------- WRITE ----------------
         with open(LOG_FILE, "a", encoding="utf-8") as f:
 
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -44,10 +42,6 @@ def write_log(text):
     except Exception as e:
         print("[ERR] LOG:", e)
 
-
-# =========================
-# PRINT + LOG
-# =========================
 
 def log_print(*args):
 
@@ -146,19 +140,27 @@ while True:
                 if not msg:
                     continue
 
-                # ---------------- ROUTING ----------------
-                rule = mon.message_rules.get(event.get("type"), {})
+                category = event.get("category")
+                event_type = event.get("type")
 
-                to_console = rule.get("console", True)
-                to_telegram = rule.get("telegram", True)
+                rule = mon.message_rules.get(event_type, {})
 
-                if to_console:
-                    log_print(msg)
+                # =========================
+                # ROUTING LOGIC (НОВА МОДЕЛЬ)
+                # =========================
 
-                if to_telegram:
+                send_to_telegram = rule.get("telegram", True)
+
+                # DEBUG режим більше не ламає правила повністю
+                if DEBUG_MODE and category == "RAW":
+                    send_to_telegram = True
+
+                log_print(msg)
+
+                if send_to_telegram:
                     send(msg)
 
         except Exception as e:
             log_print("[ERR] runtime:", e)
 
-    time.sleep(1)
+    time.sleep(POLL_INTERVAL)

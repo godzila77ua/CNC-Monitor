@@ -90,6 +90,15 @@ class EngraveAdapter:
         return f"{h} год {m} хв {s} сек"
 
 
+    # ---------------- EVENT WRAPPER ----------------
+    def _event(self, category, event_type, **data):
+        return {
+            "category": category,
+            "type": event_type,
+            **data
+        }
+
+
     # ---------------- UPDATE ----------------
     def update(self):
 
@@ -100,7 +109,7 @@ class EngraveAdapter:
         event = None
 
         # =========================
-        # 🟩 START
+        # START
         # =========================
         file_appeared = exists and not self.last_exists
         file_changed = mod is not None and mod != self.last_mod
@@ -116,13 +125,14 @@ class EngraveAdapter:
 
             print(f"{self.name} START")
 
-            event = {
-                "type": "START",
-                "file": self.current_file
-            }
+            event = self._event(
+                "STATE",
+                "START",
+                file=self.current_file
+            )
 
         # =========================
-        # 🟩 RUNNING
+        # RUNNING
         # =========================
         if exists:
 
@@ -135,7 +145,7 @@ class EngraveAdapter:
                     self.pause_since = now
 
         # =========================
-        # 🟨 PAUSE
+        # PAUSE
         # =========================
         if self.state == "RUNNING" and exists and self.pause_since is not None:
 
@@ -146,13 +156,14 @@ class EngraveAdapter:
 
                 print(f"{self.name} PAUSE")
 
-                event = {
-                    "type": "PAUSE",
-                    "file": self.current_file
-                }
+                event = self._event(
+                    "STATE",
+                    "PAUSE",
+                    file=self.current_file
+                )
 
         # =========================
-        # 🟦 RESUME
+        # RESUME
         # =========================
         if self.state == "PAUSED" and exists and mod != self.last_mod:
 
@@ -161,20 +172,18 @@ class EngraveAdapter:
 
             print(f"{self.name} RESUME")
 
-            event = {
-                "type": "RESUME",
-                "file": self.current_file
-            }
+            event = self._event(
+                "STATE",
+                "RESUME",
+                file=self.current_file
+            )
 
         # =========================
-        # 🟥 STOP (FIXED - NO SPAM)
+        # STOP
         # =========================
         if not exists:
 
-            if self.state == "IDLE":
-                # 🔒 вже зупинено → нічого не робимо
-                self.missing_since = None
-            else:
+            if self.state != "IDLE":
 
                 if self.missing_since is None:
                     self.missing_since = now
@@ -189,15 +198,19 @@ class EngraveAdapter:
 
                     print(f"{self.name} STOP")
 
-                    event = {
-                        "type": "STOP",
-                        "file": self.current_file,
-                        "duration": duration
-                    }
+                    event = self._event(
+                        "STATE",
+                        "STOP",
+                        file=self.current_file,
+                        duration=duration
+                    )
 
                     self.start_time = None
                     self.missing_since = None
                     self.pause_since = None
+
+            else:
+                self.missing_since = None
 
         # =========================
         # TRACK UPDATE
@@ -214,38 +227,20 @@ class EngraveAdapter:
         if not isinstance(event, dict):
             return ""
 
-        t = event["type"]
+        t = event.get("type")
+        rule = self.message_rules.get(t, {})
 
-        if t == "START":
-            return (
-                f"🟩 {self.name}\n"
-                f"Запуск гравіювання\n"
-                f"Файл: {event['file']}"
-            )
+        icon = rule.get("icon", "")
 
-        if t == "PAUSE":
-            return (
-                f"🟨 {self.name}\n"
-                f"Пауза обробки\n"
-                f"Файл: {event['file']}"
-            )
+        lines = [
+            f"{icon} {self.name}".strip(),
+            rule.get("text", t)
+        ]
 
-        if t == "RESUME":
-            return (
-                f"🟦 {self.name}\n"
-                f"Гравіювання продовжено\n"
-                f"Файл: {event['file']}"
-            )
+        if rule.get("include_file"):
+            lines.append(f"Файл: {event.get('file', 'Невідомо')}")
 
-        if t == "STOP":
+        if rule.get("include_duration"):
+            lines.append(f"Час роботи: {self._format_time(event.get('duration', 0))}")
 
-            tstr = self._format_time(event.get("duration", 0))
-
-            return (
-                f"🟥 {self.name}\n"
-                f"Гравіювання завершено\n"
-                f"Файл: {event['file']}\n"
-                f"Час роботи: {tstr}"
-            )
-
-        return ""
+        return "\n".join(lines)

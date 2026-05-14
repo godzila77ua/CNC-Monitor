@@ -24,8 +24,7 @@
       "text": "Обробку розпочато",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "START_ADVANCED": {
@@ -33,8 +32,7 @@
       "text": "Обробку продовжено",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "STOP": {
@@ -42,8 +40,7 @@
       "text": "Обробку завершено",
       "include_file": true,
       "include_duration": true,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "STOP_MANUAL": {
@@ -51,8 +48,7 @@
       "text": "Обробку зупинено",
       "include_file": true,
       "include_duration": true,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "SIMULATION_START": {
@@ -60,8 +56,7 @@
       "text": "Симуляцію розпочато",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "SIMULATION_STOP": {
@@ -69,8 +64,7 @@
       "text": "Симуляцію завершено",
       "include_file": true,
       "include_duration": true,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "NCSTUDIO_START": {
@@ -78,8 +72,7 @@
       "text": "Запуск NC Studio",
       "include_file": false,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "NCSTUDIO_EXIT": {
@@ -87,37 +80,32 @@
       "text": "Вихід з NC Studio",
       "include_file": false,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "INFO": {
       "icon": "🟤",
       "text": "",
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "CPU_FREQ": {
       "icon": "🟤🟤🟤",
       "text": "Частота процесора",
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "OFFSET_CHANGE": {
       "icon": "🟤🟤",
       "text": "Зміна нульової точки",
       "include_file": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "RAW_INFO": {
       "icon": "⚫",
       "text": "",
-      "telegram": true,
-      "console": true
+      "telegram": true
     }
   }
 }
