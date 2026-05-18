@@ -26,6 +26,19 @@ class NCStudioAdapter:
         self.markers = self.rules_config["markers"]
         self.message_rules = self.rules_config["messages"]
 
+        # byte markers для стабільного пошуку
+        self.byte_markers = {
+            "manual_stop": [
+                m.encode("gbk")
+                for m in self.markers.get("manual_stop", [])
+            ],
+
+            "stop": [
+                m.encode("gbk")
+                for m in self.markers.get("stop", [])
+            ]
+        }
+
         try:
             if self.log_file and os.path.exists(self.log_file):
                 with open(self.log_file, "rb") as f:
@@ -69,6 +82,15 @@ class NCStudioAdapter:
             return any(m in line for m in marker)
 
         return marker in line
+
+
+    # ---------------- BYTE MARKER ----------------
+    def _has_byte_marker(self, markers, raw_bytes):
+
+        if isinstance(markers, list):
+            return any(m in raw_bytes for m in markers)
+
+        return markers in raw_bytes
 
 
     # ---------------- OFFSET PARSER ----------------
@@ -229,7 +251,7 @@ class NCStudioAdapter:
 
 
                     # ---------------- STOP ----------------
-                    elif self._has_marker(self.markers["stop"], raw):
+                    elif self._has_byte_marker(self.byte_markers["stop"], raw_bytes):
 
                         file_name = self._extract_filename(clean_file)
 
@@ -253,7 +275,7 @@ class NCStudioAdapter:
 
 
                     # ---------------- MANUAL STOP ----------------
-                    elif self._has_marker(self.markers["manual_stop"], raw):
+                    elif self._has_byte_marker(self.byte_markers["manual_stop"], raw_bytes):
 
                         file_name = self._extract_filename(clean_file)
                         duration = int(time.time() - self.start_time) if self.start_time else 0
