@@ -2,14 +2,19 @@
   "markers": {
     "machining_start": "Initiate a machining task",
     "simulation_start": "Initiate a simulation",
-    "stop": ["ОДјю", "ХэіЈНк±П"],
-    "manual_stop": ["ОДјю", "ЦР¶ПЦХЦ№"],
+
+    "stop": ["正常完毕"],
+    "manual_stop": ["中断终止"],
+
     "ncstudio_start": "Nc Studio start",
     "ncstudio_exit": "Nc Studio exits",
+
     "cpu_freq": "CPU Freq",
     "interrupt_loss": "INTERRUPTLOSS",
-    "internal_error": "ДЪІїґнОу",
-    "offset_change": "ёьёД№¤јюЧш±к"
+
+    "internal_error": "内部错误",
+
+    "offset_change": "更改工件坐标"
   },
 
   "messages": {
@@ -19,8 +24,7 @@
       "text": "Обробку розпочато",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "START_ADVANCED": {
@@ -28,8 +32,7 @@
       "text": "Обробку продовжено",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "STOP": {
@@ -37,8 +40,7 @@
       "text": "Обробку завершено",
       "include_file": true,
       "include_duration": true,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "STOP_MANUAL": {
@@ -46,74 +48,64 @@
       "text": "Обробку зупинено",
       "include_file": true,
       "include_duration": true,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "SIMULATION_START": {
-      "icon": "⚪",
+      "icon": "🟣",
       "text": "Симуляцію розпочато",
       "include_file": true,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "SIMULATION_STOP": {
-      "icon": "⚪",
+      "icon": "🟣🟣",
       "text": "Симуляцію завершено",
       "include_file": true,
-      "include_duration": false,
-      "telegram": true,
-      "console": true
+      "include_duration": true,
+      "telegram": true
     },
 
     "NCSTUDIO_START": {
-      "icon": "🟣",
+      "icon": "⚪",
       "text": "Запуск NC Studio",
       "include_file": false,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "NCSTUDIO_EXIT": {
-      "icon": "🟣",
+      "icon": "⚪⚪",
       "text": "Вихід з NC Studio",
       "include_file": false,
       "include_duration": false,
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "INFO": {
-      "icon": "⚪",
+      "icon": "🟤",
       "text": "",
-      "telegram": true,
-      "console": true
+      "telegram": true
     },
 
     "CPU_FREQ": {
-     "icon": "⚪",
-     "text": "Частота процесора",
-     "telegram": true,
-     "console": true
+      "icon": "🟤",
+      "text": "Частота процесора",
+      "telegram": true
     },
 
     "OFFSET_CHANGE": {
-     "icon": "⚪",
-     "text": "Зміна нульової точки",
-     "include_file": false,
-     "telegram": true,
-     "console": true
+      "icon": "🟤",
+      "text": "Зміна нульової точки",
+      "include_file": false,
+      "telegram": true
     },
 
     "RAW_INFO": {
-     "icon": "⚪",
-     "text": "",
-     "telegram": true,
-     "console": true
+      "icon": "⚫",
+      "text": "",
+      "telegram": true
     }
-
   }
 }

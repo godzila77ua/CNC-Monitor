@@ -1,28 +1,42 @@
 {
+  "markers": {
+    "start": "ENGRAVE START",
+    "pause": "ENGRAVE PAUSE",
+    "resume": "ENGRAVE RESUME",
+    "stop": "ENGRAVE STOP"
+  },
+
   "messages": {
     "START": {
       "icon": "🟩",
       "text": "Запуск гравіювання",
       "include_file": true,
-      "include_duration": false
+      "include_duration": false,
+      "telegram": true
     },
+
     "PAUSE": {
       "icon": "🟨",
       "text": "Пауза обробки",
       "include_file": true,
-      "include_duration": false
+      "include_duration": false,
+      "telegram": true
     },
+
     "RESUME": {
       "icon": "🟦",
       "text": "Гравіювання продовжено",
       "include_file": true,
-      "include_duration": false
+      "include_duration": false,
+      "telegram": true
     },
+
     "STOP": {
       "icon": "🟥",
       "text": "Гравіювання завершено",
       "include_file": true,
-      "include_duration": true
+      "include_duration": true,
+      "telegram": true
     }
   }
 }
