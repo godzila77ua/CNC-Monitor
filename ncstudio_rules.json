@@ -17,6 +17,10 @@
     "offset_change": "更改工件坐标"
   },
 
+    "error_translations": {
+    "数据流解包错误": "помилка розпакування потоку даних"
+  },
+  
   "messages": {
 
     "START": {

@@ -24,6 +24,7 @@ class NCStudioAdapter:
 
         self.rules_config = self._load_rules()
         self.markers = self.rules_config["markers"]
+        self.error_translations = self.rules_config.get("error_translations", {})
         self.message_rules = self.rules_config["messages"]
 
         # byte markers для стабільного пошуку
@@ -232,8 +233,31 @@ class NCStudioAdapter:
 
                         events.append(self._event("STATE", "NCSTUDIO_EXIT"))
                         handled = True
+                        
 
+                    # ---------------- INTERNAL ERROR ----------------
+                    elif self._has_marker(self.markers["internal_error"], raw):
 
+                        msg = clean
+
+                        msg = msg.replace(
+                            self.markers["internal_error"],
+                            "Внутрішня помилка"
+                        ).strip()
+
+                        for cn, ua in self.error_translations.items():
+                            msg = msg.replace(cn, ua)
+
+                        events.append(
+                            self._event(
+                                "INFO",
+                                "INFO",
+                                msg=msg
+                            )
+                        )
+
+                        handled = True
+    
                     # ---------------- SIMULATION START ----------------
                     elif self._has_marker(self.markers["simulation_start"], raw):
 
@@ -296,6 +320,10 @@ class NCStudioAdapter:
                     # ---------------- START / ADVANCED ----------------
                     elif self._has_marker(self.markers["machining_start"], raw):
 
+                        # скидаємо режим симуляції
+                        self.simulation_running = False
+                        self.simulation_file = "Невідомо"
+
                         file_name = self._extract_filename(clean_file)
 
                         self.current_file = file_name
@@ -342,7 +370,7 @@ class NCStudioAdapter:
 
         icon = rule.get("icon", "")
 
-        if t in ["RAW_INFO", "CPU_FREQ", "OFFSET_CHANGE"]:
+        if t in ["RAW_INFO", "CPU_FREQ", "OFFSET_CHANGE", "INFO"]:
             text = rule.get("text", "")
             msg = event.get("msg", "")
 
