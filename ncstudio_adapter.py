@@ -210,6 +210,21 @@ class NCStudioAdapter:
                             self._event("INFO", "CPU_FREQ", msg=value)
                         )
                         handled = True
+                        
+                                            # ---------------- INTERRUPT LOSS ----------------
+                    elif self._has_marker(self.markers.get("interrupt_loss"), raw):
+
+                        msg = clean
+
+                        events.append(
+                            self._event(
+                                "INFO",
+                                "INFO",
+                                msg=msg
+                            )
+                        )
+
+                        handled = True
 
 
                     # ---------------- OFFSET ----------------
@@ -242,7 +257,7 @@ class NCStudioAdapter:
 
                         msg = msg.replace(
                             self.markers["internal_error"],
-                            "Внутрішня помилка"
+                            "Внутрішня помилка: "
                         ).strip()
 
                         for cn, ua in self.error_translations.items():
