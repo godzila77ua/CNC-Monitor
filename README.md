@@ -1,73 +1,56 @@
-# CNC Monitor 0.9.5
-
-Дата фіксації: 2026-05-03
-Статус: робоча версія
+#CNC Monitor
 
 ## Призначення
 
-CNC Monitor відстежує роботу NCStudio та Engrave, формує події про стан обробки й надсилає повідомлення в Telegram.
+CNC Monitor — event-driven система моніторингу CNC станків (NCStudio та Engrave), яка перетворює системні логи та файлові зміни у структуровані події з подальшою відправкою в Telegram.
+Підтримується масштабування на довільну кількість станків через ENV-конфігурацію, а також можливість додавання нових типів станків через створення адаптерів.
 
-## Основні файли
 
-- `cnc_monitor.py` - головний цикл моніторингу, створення адаптерів, відправка повідомлень у Telegram.
-- `ncstudio_adapter.py` - адаптер NCStudio, читання `NCSTUDIO.LOG`, розпізнавання подій за маркерами.
-- `ncstudio_rules.json` - усі маркери NCStudio, тексти подій, іконки й формат повідомлень.
-- `engrave_adapter.py` - адаптер Engrave, відстеження `.grv` файлу, визначення старту, паузи, продовження й завершення.
-- `engrave_rules.json` - тексти, іконки й формат повідомлень Engrave.
-- `config.json` - налаштування Telegram і список машин.
-- `run.bat` - запуск монітора.
+## Архітектура системи
 
-## Функції NCStudio
+Log / File changes
+        ↓
+     Adapters
+ (NCStudio / Engrave)
+        ↓
+   Event System
+        ↓
+  Rules Engine (JSON)
+        ↓
+   Formatter
+        ↓
+ Telegram / Console / Log
 
-- Старт обробки за маркером `machining_start`.
-- Старт симуляції за маркером `simulation_start`.
-- Завершення симуляції як інформаційна подія, якщо після старту симуляції приходить STOP без реального START.
-- Завершення реальної обробки як STOP, якщо перед цим був START.
-- Ручна зупинка як окрема подія STOP_MANUAL.
-- Інформаційні події запуску/виходу NCStudio, CPU, втрати переривань, внутрішньої помилки, зміни координати заготовки.
-- Усі NCStudio-маркери винесені в `ncstudio_rules.json`.
-- STOP підтримує складені маркери: усі частини списку мають бути в одному рядку логу.
 
-## Поточні NCStudio-маркери
+## NCStudio Adapter
 
-- `machining_start`: `Initiate a machining task`
-- `simulation_start`: `Initiate a simulation`
-- `stop`: `ОДјю` + `ХэіЈНк±П`
-- `manual_stop`: `ОДјю` + `ЦР¶ПЦХЦ№`
-- `ncstudio_start`: `Nc Studio start`
-- `ncstudio_exit`: `Nc Studio exits`
-- `cpu_freq`: `CPU Freq`
-- `interrupt_loss`: `INTERRUPTLOSS`
-- `internal_error`: `ДЪІїґнОу`
-- `offset_change`: `ёьёД№¤јюЧш±к`
+Детекція запуску та завершення обробки
+Детекція симуляції
+Виявлення ручної зупинки
+Обробка інформаційних подій:
+CPU frequency
+interrupt loss
+internal errors
+offset changes
+Підтримка логів з різними кодуваннями (GBK / UTF-8 fallback)
 
-## Функції Engrave
 
-- Старт гравіювання при появі або зміні `.grv` файлу.
-- Пауза, якщо файл існує, але не змінюється довше таймауту.
-- Продовження після паузи при новій зміні файлу.
-- Завершення, якщо файл зник довше таймауту.
-- Тексти й іконки повідомлень винесені в `engrave_rules.json`.
+## Engrave Adapter
 
-## Формати повідомлень
+File-based state machine для контролю гравіювання:
+START — поява або зміна .grv файлу
+PAUSE — відсутність змін протягом таймауту
+RESUME — відновлення змін файлу
+STOP — зникнення файлу
 
-NCStudio:
+## Rules System
 
-- `START`: запуск обробки, файл.
-- `STOP`: обробку завершено, файл, час роботи.
-- `STOP_MANUAL`: зупинено вручну, файл, час роботи.
-- `SIMULATION_START`: запуск симуляції, файл.
-- `SIMULATION_STOP`: симуляцію завершено, файл.
-- `INFO`: інформаційне повідомлення.
+ncstudio_rules.json — правила обробки NCStudio подій
+engrave_rules.json — правила форматування Engrave подій
+дозволяє змінювати поведінку без зміни коду
 
-Engrave:
+## Output
 
-- `START`: запуск гравіювання, файл.
-- `PAUSE`: пауза обробки, файл.
-- `RESUME`: гравіювання продовжено, файл.
-- `STOP`: гравіювання завершено, файл, час роботи.
-
-## Примітки
-
-- Telegram token і chat id зберігаються в `config.json`; для конфіденційності їх бажано винести в окремий секретний файл або змінні середовища.
-- У цьому середовищі `git` і `python` недоступні, тому коміт і локальний запуск не виконувалися.
+Telegram notifications
+Console logging
+File logging (monitor.log)
